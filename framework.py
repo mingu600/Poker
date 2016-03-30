@@ -20,7 +20,22 @@ new_ranks = {
     }
 }
 
-class Human:
+class Player:
+    def __init__(self, name):
+        self.hand = []
+        self.name = name
+        self.chips = 0
+        self.current_bet = 0
+        self.folded = False
+
+    def resetBets(self):
+        self.current_bet = 0
+
+    def printName(self):
+        print("It's " + self.name + "\'s turn.")
+
+
+class Human(Player):
     def __init__(self, name):
         self.hand = []
         self.name = name
@@ -55,15 +70,9 @@ class Human:
         self.chips -= bet
         return bet
 
-    def resetBets(self):
-        self.current_bet = 0
-
-    def printName(self):
-        print("It's " + self.name + "\'s turn.")
 
 
-
-class Bot:
+class Bot(Player):
     def __init__(self, name):
         self.hand = []
         self.name = name
@@ -91,12 +100,6 @@ class Bot:
             print(self.name + " raises " + str(bet - min_bet) + "to " + str(bet + self.current_bet))
         self.chips -= bet
         return bet
-
-    def resetBets(self):
-        self.current_bet = 0
-
-    def printName(self):
-        print("It's " + self.name + "\'s turn.")
 
 
 class Game:
