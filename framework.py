@@ -43,9 +43,9 @@ class Human(Player):
         self.current_bet = 0
         self.folded = False
 
-    def bet(self, min_bet):
+    def bet(self, min_bet, current_bet):
         bet = -5
-        min_bet -= self.current_bet
+        min_bet -= current_bet
         while bet < min_bet and bet != -10:
             print("Enter your bet, minimum to call is " + str(min_bet) + ", to fold enter -10")
             try:
@@ -80,10 +80,10 @@ class Bot(Player):
         self.current_bet = 0
         self.folded = False
 
-    def bet(self, min_bet):
+    def bet(self, min_bet, current_bet):
         # For now, bot only checks or calls
         bet = -5
-        min_bet -= self.current_bet
+        min_bet -= current_bet
         while bet < min_bet:
             bet = min_bet
         if bet == min_bet:
@@ -97,7 +97,7 @@ class Bot(Player):
             bet = 0
             self.folded = True
         else:
-            print(self.name + " raises " + str(bet - min_bet) + "to " + str(bet + self.current_bet))
+            print(self.name + " raises " + str(bet - min_bet) + "to " + str(bet + current_bet))
         self.chips -= bet
         return bet
 
@@ -111,7 +111,7 @@ class Game:
         self.deck.shuffle()
         self.blinds = blinds
         self.chips = chips
-        self.pot = 0
+        self.pot = [0 for x in range(0,self.player_num)]
         self.table_chips = 0
         self.raise_counter = 0
         self.table = []
@@ -149,6 +149,10 @@ class Game:
         else:
             print("Showdown")
         print(self.table)
+    
+    #returns list of players remaining in hand in order of hand strength
+    def handRank(self):
+        return []
 
     def handResult(self, hand):
         sorted_hand = hand
@@ -292,12 +296,14 @@ class Game:
         self.dealCards()
         # Small and Big blinds are put on the table
         self.player_list[(dealer + 1) % self.player_num].chips -= self.blinds[0]
-        self.player_list[(dealer + 1) % self.player_num].current_bet = self.blinds[0]
+        #self.player_list[(dealer + 1) % self.player_num].current_bet = self.blinds[0]
         print(self.player_list[(dealer + 1) % self.player_num].name + " pays small blind of " + str(self.blinds[0]))
+        self.pot[(dealer + 1) % self.player_num] = self.blinds[0]
         self.player_list[(dealer + 2) % self.player_num].chips -= self.blinds[1]
-        self.player_list[(dealer + 2) % self.player_num].current_bet = self.blinds[1]
+        #self.player_list[(dealer + 2) % self.player_num].current_bet = self.blinds[1]
         print(self.player_list[(dealer + 2) % self.player_num].name + " pays big blind of " + str(self.blinds[1]))
-        self.table_chips += self.blinds[1] + self.blinds[0]
+        self.pot[(dealer + 2) % self.player_num] = self.blinds[1]
+#self.table_chips += self.blinds[1] + self.blinds[0]
         min_bet = self.blinds[1]
         people_in = self.player_num
         turn = 0
@@ -314,20 +320,25 @@ class Game:
                         continue
                     print("Current bet: " + str(min_bet))
                     self.player_list[i % people_in].printName()
-                    amount_bet = self.player_list[i % people_in].bet(min_bet)
+                    amount_bet = self.player_list[i % people_in].bet(min_bet,self.pot[i % people_in])
+                    #still have to verify correct bet
+                    self.pot[i % people_in] += amount_bet
+                    tot = self.pot[i % people_in]
+                    '''
                     self.table_chips += amount_bet
                     tot = amount_bet + self.player_list[i % people_in].current_bet
                     self.player_list[i % self.player_num].current_bet += amount_bet
                     print(self.player_list[i % people_in].chips)
+                    '''
                     if min_bet < tot:
                         min_bet = tot
                         place = i
                         raise_const = 0
                         break
-            self.pot += self.table_chips
-            self.clearTableChips()
-            for i in xrange(0, self.player_num):
-                self.player_list[i].resetBets()
+            #self.pot += self.table_chips
+            #self.clearTableChips()
+            #for i in xrange(0, self.player_num):
+            #    self.player_list[i].resetBets()
             min_bet = 0
             turn += 1
             self.rounds(turn)
@@ -340,6 +351,20 @@ class Game:
 
 
 
+        #distribute chips to winner(s)
+        handRank = self.handRank()
+        for winner in handRank:
+            #loop over pot and grab their bet size from every other player
+            amount_bet = self.pot[winner] 
+            chips_won = 0
+            for loser in self.pot:
+                if player > amount_bet:
+                    player -= amount_bet
+                    chips_won += amount_bet
+                else:
+                    chips_won += player
+                    player = 0
+            self.player_list[winner].chips += chips_won
 
 
 if __name__ == "__main__":
