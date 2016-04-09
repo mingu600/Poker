@@ -359,15 +359,15 @@ class Game:
             #loop over tied winners, resolve smaller sidepots first
             for i in range(0,len(winner)):
             #loop over pot and grab their bet size from every other player
-                amount_bet = self.pot[winner] 
+                amount_bet = self.pot[winner[i]]
                 chips_won = 0
                 for loser in self.pot:
-                    if player > amount_bet:
-                        player -= amount_bet
+                    if loser > amount_bet:
+                        loser -= amount_bet
                         chips_won += amount_bet
                     else:
-                        chips_won += player
-                        player = 0
+                        chips_won += loser
+                        loser = 0
                 #split chips proportionally among players that bet enough for this pot
                 for j in range(i,len(winner)):
                     self.player_list[winner].chips += chips_won*(1/(len(winner)-i))
