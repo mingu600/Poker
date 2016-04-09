@@ -207,7 +207,9 @@ class Game:
 
         #distribute chips to winner(s)
         handRank = self.handRank()
+        print repr(handRank) + '\n'
         for winner in handRank:
+            print repr(winner) + '\n'
             #for tied winners, sort by the amount they've bet (least first)
             winner.sort(key = lambda x: self.pot[x])
             #loop over tied winners, resolve smaller sidepots first
@@ -215,16 +217,17 @@ class Game:
             #loop over pot and grab their bet size from every other player
                 amount_bet = self.pot[winner[i]]
                 chips_won = 0
-                for loser in self.pot:
-                    if loser > amount_bet:
-                        loser -= amount_bet
+                for j in range(0,len(self.pot)):
+                    if self.pot[j] > amount_bet:
+                        self.pot[j] -= amount_bet
                         chips_won += amount_bet
                     else:
-                        chips_won += loser
-                        loser = 0
+                        chips_won += self.pot[j]
+                        self.pot[j] = 0
                 #split chips proportionally among players that bet enough for this pot
                 for j in range(i,len(winner)):
-                    self.player_list[winner].chips += chips_won*(1/(len(winner)-i))
+                    self.player_list[winner[j]].chips += chips_won*(1/(len(winner)-i))
+                    print "player %d won %d chips \n" % (winner[j],chips_won*(1/(len(winner)-i)))
 
 if __name__ == "__main__":
     test = Game([Bot("Robert"), Bot("Mingu"), Bot("Alex"), Bot("Manny")], 1000, [5, 10])
