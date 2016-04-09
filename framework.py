@@ -1,3 +1,4 @@
+from __future__ import division
 from deuces import Card, Evaluator, Deck
 from itertools import groupby
 from operator import itemgetter
@@ -9,6 +10,7 @@ class Player:
         self.chips = 0
         self.current_bet = 0
         self.folded = False
+        self.bot = False
 
     def resetBets(self):
         self.current_bet = 0
@@ -61,6 +63,7 @@ class Bot(Player):
         self.chips = 0
         self.current_bet = 0
         self.folded = False
+        self.bot = True
 
     def bet(self, min_bet, current_bet):
         # For now, bot only checks or calls
@@ -82,6 +85,28 @@ class Bot(Player):
             print(self.name + " raises " + str(bet - min_bet) + "to " + str(bet + current_bet))
         self.chips -= bet
         return bet
+
+    def calc_hand_strength(self, game):
+        score = [0, 0]
+        for i in range(0, 10000):
+            deck = Deck()
+            player1_hand = self.hand
+            player2_hand = deck.draw(2)
+            if len(list(set(player1_hand + game.table).intersection(player2_hand))) == 0:
+                p1_score = game.evaluator.evaluate(game.table, player1_hand)
+                p2_score = game.evaluator.evaluate(game.table, player2_hand)
+
+                if p1_score < p2_score:
+                    score[0] += 1
+                    score[1] += 1
+                elif p2_score < p1_score:
+                    score[1] += 1
+                else:
+                    score[0] += 1
+                    score[1] += 2
+        strength = score[0] / score[1]
+        print strength
+        return strength
 
 
 class Game:
@@ -130,6 +155,9 @@ class Game:
         else:
             print("Showdown")
         Card.print_pretty_cards(self.table)
+        for i in self.player_list:
+            if i.bot == True:
+                i.calc_hand_strength(self)
 
     #returns list of players remaining in hand in order of hand strength
     def handRank(self):
