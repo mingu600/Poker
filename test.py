@@ -10,3 +10,5 @@ results = sorted(pre_flop.items(), key=lambda x: x[1], reverse=True)
 for i in range(0, 30):
     Card.print_pretty_cards(list(results[i][0]))
     print "Winning Percentage: " + str(results[i][1] * 100)
+
+
