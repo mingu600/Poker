@@ -199,7 +199,7 @@ class Game:
             print "Player %s won %d chips" % (self.player_list[handRank[1][0]].name,int(sum(self.pot) / 2.))
             self.player_list[handRank[1][0]].chips += int(sum(self.pot) / 2.)
         for i in range(2):
-            print self.player_list[i].chips
+            print self.player_list[i].name + ': ' + str(self.player_list[i].chips)
         print "\n"
 
     def play(self):
@@ -281,5 +281,5 @@ class Game:
 
 
 if __name__ == "__main__":
-    test = Game([Human("Robert"), Human("Mingu")], 40, [5, 10])
+    test = Game([Human("Robert"), Bot("Mingu")], 40, [5, 10])
     test.play()
