@@ -132,6 +132,7 @@ class Game:
     def dealCards(self):
         for i in range(2):
             self.player_list[i].hand = self.deck.draw(2)
+            print self.player_list[i].name
             Card.print_pretty_cards(self.player_list[i].hand)
 
     def resetChips(self):
