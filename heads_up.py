@@ -73,7 +73,6 @@ class Human(Player):
             self.folded = True
         else:
             print(self.name + " raises " + str(bet - min_bet) + " to " + str(bet + self.current_bet))
-        self.chips -= bet
         return bet
 
 
@@ -90,7 +89,7 @@ class Bot(Player):
         if strategy:
             self.bet = strategy
 
-    def bet(self, min_bet, current_bet):
+    def bet(self, min_bet, current_bet,game=None):
         # For now, bot only checks or calls
         bet = -5
         min_bet -= current_bet
@@ -112,7 +111,6 @@ class Bot(Player):
             self.folded = True
         else:
             print(self.name + " raises " + str(bet - min_bet) + "to " + str(bet + current_bet))
-        self.chips -= bet
         return bet
 
 
@@ -130,6 +128,7 @@ class Game:
         self.raise_counter = 0
         self.table = []
         self.strengths =[[], []]
+        self.last_bets = [None,None]
 
     def dealCards(self):
         for i in range(2):
@@ -193,14 +192,14 @@ class Game:
         #print repr(handRank) + '\n'
         if len(handRank[0]) ==1:
             print "Player %s won %d chips" % (self.player_list[handRank[0][0]].name,self.pot[handRank[1][0]])
-            self.player_list[handRank[0][0]].chips += sum(self.pot)
+            self.player_list[handRank[0][0]].chips += self.pot[handRank[1][0]]
             print "Player %s lost %d chips" % (self.player_list[handRank[1][0]].name,self.pot[handRank[1][0]])
             #self.player_list[handRank[1][0]].chips -= self.pot[handRank[1][0]]
         else:
-            print "Player %s won %d chips" % (self.player_list[handRank[0][0]].name,int(sum(self.pot) / 2.))
-            self.player_list[handRank[0][0]].chips += int(sum(self.pot) / 2.)
-            print "Player %s won %d chips" % (self.player_list[handRank[1][0]].name,int(sum(self.pot) / 2.))
-            self.player_list[handRank[1][0]].chips += int(sum(self.pot) / 2.)
+            print "Player %s won %d chips" % (self.player_list[handRank[0][0]].name,0)
+            self.player_list[handRank[0][0]].chips += 0
+            print "Player %s won %d chips" % (self.player_list[handRank[1][0]].name,0))
+            self.player_list[handRank[1][0]].chips += 0
         for i in range(2):
             print self.player_list[i].name + ': ' + str(self.player_list[i].chips)
         print "\n"
@@ -228,6 +227,7 @@ class Game:
                 break
             print "Next Round"
             self.player_list = np.roll(self.player_list, 1)
+            self.last_bets = np.roll(self.last_bets,1)
             # Round starts
             # People are dealt cards at the start of the round
             self.dealCards()
@@ -265,6 +265,7 @@ class Game:
                         print("Current bet: " + str(min_bet))
                         self.player_list[i % 2].printName()
                         amount_bet = self.player_list[i % 2].bet(min_bet, self.pot[i % 2])
+                        self.last_bets[i % 2] = amount_bet
                         if self.player_list[0].folded == True or self.player_list[1].folded == True :
                             break
                         #still have to verify correct bet

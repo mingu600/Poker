@@ -9,6 +9,8 @@ from keras.layers import Dense, Activation
 
 from framework import Game
 
+from heads_up import Bot
+
 class Learner(object):
 
     def __init__(self,exp_replay="experiences.csv",model=None):
@@ -97,3 +99,29 @@ class Learner(object):
     #subroutine to record experiences
     def experience(self, state, action, reward, new_state):
         self.exp_writer.writerow(state + [action] + [reward] + new_state)
+
+
+class RLBot(Bot):
+    def bet(self,min_bet,current_bet,game):
+
+        #calculate state
+        hand_str = self.calc_hand_strength(game)
+        pos = np.int(game.player_list[0] is self)
+        bankroll = self.chips
+        opp_bankroll = game.player_list[pos].chips
+        opp_last_bet = game.last_bets[pos]
+        pot_size = sum(game.pot)
+        state = [hand_str,pos,bankroll,opp_bankroll,opp_last_bet,pot_size]
+
+        #reward will be 0 for the last round
+        #need to police bets
+        
+    #indicate to bot that a given round has ended
+    #TODO: calculate reward
+    def end_round(self):
+        self.learner.reset()
+
+    def __init__(self,name):
+        self.learner = Learner()
+        
+        super(RLBot,self).__init__(name,)
