@@ -80,13 +80,15 @@ class Human(Player):
 
 
 class Bot(Player):
-    def __init__(self, name):
+    def __init__(self, name, strategy=None):
         self.hand = []
         self.name = name
         self.chips = 0
         self.current_bet = 0
         self.folded = False
         self.bot = True
+        if strategy:
+            self.bet = strategy
 
     def bet(self, min_bet, current_bet):
         # For now, bot only checks or calls
