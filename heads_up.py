@@ -3,7 +3,8 @@ from deuces import Card, Evaluator, Deck
 from itertools import groupby
 from operator import itemgetter
 import numpy as np
-
+import rl_bot
+import pdb
 class Player:
     def __init__(self, name):
         self.hand = []
@@ -21,13 +22,18 @@ class Player:
 
     def calc_hand_strength(self, game):
         score = [0, 0]
+        table = game.table[:]
         for i in range(0, 1000):
             deck = Deck()
+            new = 0
             player1_hand = self.hand
             player2_hand = deck.draw(2)
-            if len(list(set(player1_hand + game.table).intersection(player2_hand))) == 0:
-                p1_score = game.evaluator.evaluate(game.table, player1_hand)
-                p2_score = game.evaluator.evaluate(game.table, player2_hand)
+            if table == []:
+                table = deck.draw(3)
+                new = 1
+            if len(list(set(player1_hand + table).intersection(player2_hand))) == 0:
+                p1_score = game.evaluator.evaluate(table, player1_hand)
+                p2_score = game.evaluator.evaluate(table, player2_hand)
 
                 if p1_score < p2_score:
                     score[0] += 1
@@ -37,6 +43,8 @@ class Player:
                 else:
                     score[0] += 1
                     score[1] += 2
+                if new == 1:
+                    table = []
         strength = score[0] / score[1]
         return strength
 
@@ -50,7 +58,7 @@ class Human(Player):
         self.folded = False
         self.bot = False
 
-    def bet(self, min_bet, current_bet):
+    def bet(self, min_bet, current_bet, game=None):
         bet = -5
         min_bet -= current_bet
         while bet < min_bet and bet != -10:
@@ -86,8 +94,12 @@ class Bot(Player):
         self.current_bet = 0
         self.folded = False
         self.bot = True
+        self.round = 0
         if strategy:
             self.bet = strategy
+
+    def end_round(self):
+        pass
 
     def bet(self, min_bet, current_bet,game=None):
         # For now, bot only checks or calls
@@ -127,6 +139,7 @@ class Game:
         self.table_chips = 0
         self.raise_counter = 0
         self.table = []
+        self.bet_round = 0
         self.strengths =[[], []]
         self.last_bets = [None,None]
 
@@ -150,7 +163,8 @@ class Game:
     def resetPot(self):
         self.pot = 0
 
-    def rounds(self, round_num):
+    def rounds(self):
+        round_num = self.bet_round
         if round_num == 1:
             print("The Flop")
             self.table += self.deck.draw(3)
@@ -198,11 +212,14 @@ class Game:
         else:
             print "Player %s won %d chips" % (self.player_list[handRank[0][0]].name,0)
             self.player_list[handRank[0][0]].chips += 0
-            print "Player %s won %d chips" % (self.player_list[handRank[1][0]].name,0))
+            print "Player %s won %d chips" % (self.player_list[handRank[1][0]].name,0)
             self.player_list[handRank[1][0]].chips += 0
         for i in range(2):
             print self.player_list[i].name + ': ' + str(self.player_list[i].chips)
         print "\n"
+        for i in self.player_list:
+            if isinstance(i, Bot):
+                i.end_round()
 
     def play(self):
         # Gameplay is initilalized
@@ -242,7 +259,7 @@ class Game:
             self.pot[(dealer + 2) % self.player_num] = self.blinds[1]
     #self.table_chips += self.blinds[1] + self.blinds[0]
             min_bet = self.blinds[1]
-            turn = 0
+            self.bet_round = 0
             # Rounds of betting
             for j in range(4):
                 raise_counter = -10
@@ -264,7 +281,7 @@ class Game:
                             continue
                         print("Current bet: " + str(min_bet))
                         self.player_list[i % 2].printName()
-                        amount_bet = self.player_list[i % 2].bet(min_bet, self.pot[i % 2])
+                        amount_bet = self.player_list[i % 2].bet(min_bet, self.pot[i % 2], self)
                         self.last_bets[i % 2] = amount_bet
                         if self.player_list[0].folded == True or self.player_list[1].folded == True :
                             break
@@ -275,8 +292,8 @@ class Game:
                             dealer = i
                             raise_const = 0
                             break
-                turn += 1
-                self.rounds(turn)
+                self.bet_round += 1
+                self.rounds()
 
             #distribute chips to winner(s)
             print self.strengths
