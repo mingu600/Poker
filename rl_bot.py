@@ -92,7 +92,7 @@ class Learner(object):
         else:
             #choose most advantageous action
             guesses = self.model.predict(state,batch_size=1,verbose=0)
-            action,_ = max(zip(actions,guesses),key=lambda x: x[1])
+            action,_ = max(zip(self.actions,guesses),key=lambda x: x[1])
             self.last_action
             return action
 
