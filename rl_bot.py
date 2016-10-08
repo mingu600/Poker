@@ -51,7 +51,7 @@ class Learner(object):
     def build_model(self):
         print "Building new model..."
         model = Sequential()
-        model.add(Dense(24,input_dim=6))
+        model.add(Dense(24,input_dim=7))
         model.add(Activation('relu'))
         model.add(Dense(20))
         model.add(Activation('relu'))
@@ -67,20 +67,10 @@ class Learner(object):
         #save/export model
         self.model.save(self.model_name)
 
-    def reset(self):
-        self.round = 0
-        self.last_state  = None
-        self.last_action = None
-        self.last_reward = None
-
     def compute_action(self,state,reward=0):
         #record the experience if it isn't the first round
-        if self.round != 0:
-            #can also do online training
-            self.experience(self.last_state,self.last_action,reward,state)
 
         self.last_state = state
-        self.round+=1
 
         #decide whether or not to be greedy
         r = npr.random()
@@ -111,17 +101,23 @@ class RLBot(Bot):
         opp_bankroll = game.player_list[pos].chips
         opp_last_bet = game.last_bets[pos]
         pot_size = sum(game.pot)
-        state = [hand_str,pos,bankroll,opp_bankroll,opp_last_bet,pot_size]
-
+        round_num = self.round_num
+        state = [hand_str,pos,bankroll,opp_bankroll,opp_last_bet,pot_size, round_num]
+        self.learner.compute_action(state, reward)
         #reward will be 0 for the last round
         #need to police bets
-        
+        if self.round != 0:
+            #can also do online training
+            self.experience(self.last_state,self.last_action,reward,state)
+        self.round += 1
     #indicate to bot that a given round has ended
     #TODO: calculate reward
     def end_round(self):
         self.learner.reset()
 
+
+
     def __init__(self,name):
         self.learner = Learner()
-        
+
         super(RLBot,self).__init__(name,)

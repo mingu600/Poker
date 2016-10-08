@@ -86,8 +86,12 @@ class Bot(Player):
         self.current_bet = 0
         self.folded = False
         self.bot = True
+        self.round = 0
         if strategy:
             self.bet = strategy
+
+    def end_round(self):
+        pass
 
     def bet(self, min_bet, current_bet,game=None):
         # For now, bot only checks or calls
@@ -127,6 +131,7 @@ class Game:
         self.table_chips = 0
         self.raise_counter = 0
         self.table = []
+        self.bet_round = 0
         self.strengths =[[], []]
         self.last_bets = [None,None]
 
@@ -150,7 +155,8 @@ class Game:
     def resetPot(self):
         self.pot = 0
 
-    def rounds(self, round_num):
+    def rounds(self):
+        round_num = self.bet_round
         if round_num == 1:
             print("The Flop")
             self.table += self.deck.draw(3)
@@ -203,6 +209,9 @@ class Game:
         for i in range(2):
             print self.player_list[i].name + ': ' + str(self.player_list[i].chips)
         print "\n"
+        for i in self.player_list:
+            if isinstance(i, Bot):
+                i.end_round()
 
     def play(self):
         # Gameplay is initilalized
@@ -242,7 +251,7 @@ class Game:
             self.pot[(dealer + 2) % self.player_num] = self.blinds[1]
     #self.table_chips += self.blinds[1] + self.blinds[0]
             min_bet = self.blinds[1]
-            turn = 0
+            self.bet_round = 0
             # Rounds of betting
             for j in range(4):
                 raise_counter = -10
@@ -275,8 +284,8 @@ class Game:
                             dealer = i
                             raise_const = 0
                             break
-                turn += 1
-                self.rounds(turn)
+                self.bet_round += 1
+                self.rounds()
 
             #distribute chips to winner(s)
             print self.strengths
