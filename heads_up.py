@@ -5,6 +5,7 @@ from operator import itemgetter
 import numpy as np
 import rl_bot
 import pdb
+
 class Player:
     def __init__(self, name):
         self.hand = []
@@ -98,7 +99,11 @@ class Bot(Player):
         if strategy:
             self.bet = strategy
 
-    def end_round(self):
+    def end_round(self, winnings):
+        pass
+
+    #shutdown behavior for bot
+    def end(self):
         pass
 
     def bet(self, min_bet, current_bet,game=None):
@@ -127,10 +132,11 @@ class Bot(Player):
 
 
 class Game:
-    def __init__(self, player_list, chips, blinds):
+    def __init__(self, player_list, chips, blinds, num_hands=100):
         self.player_list = player_list
         self.player_num = 2
         #self.hands = [[] for i in range(len(player_list))]
+        self.num_hands = num_hands
         self.deck = Deck()
         self.evaluator = Evaluator()
         self.blinds = blinds
@@ -197,6 +203,10 @@ class Game:
         return result
 
     def distribute_chips(self, order=0):
+
+        #keep track of winnings for each player so we can pass it to bots
+        winnings = self.player_num*[0]
+
         if order == 0:
             handRank = self.handRank()
         else:
@@ -207,8 +217,11 @@ class Game:
         if len(handRank[0]) ==1:
             print "Player %s won %d chips" % (self.player_list[handRank[0][0]].name,self.pot[handRank[1][0]])
             self.player_list[handRank[0][0]].chips += self.pot[handRank[1][0]]
+            winnings[handRank[0][0]] = self.pot[handRank[1][0]]
             print "Player %s lost %d chips" % (self.player_list[handRank[1][0]].name,self.pot[handRank[1][0]])
             #self.player_list[handRank[1][0]].chips -= self.pot[handRank[1][0]]
+            winnings[handRank[1][0]] = -self.pot[handRank[1][0]]
+
         else:
             print "Player %s won %d chips" % (self.player_list[handRank[0][0]].name,0)
             self.player_list[handRank[0][0]].chips += 0
@@ -217,16 +230,16 @@ class Game:
         for i in range(2):
             print self.player_list[i].name + ': ' + str(self.player_list[i].chips)
         print "\n"
-        for i in self.player_list:
+        for j,i in enumerate(self.player_list):
             if isinstance(i, Bot):
-                i.end_round()
+                i.end_round(winnings[j])
 
     def play(self):
         # Gameplay is initilalized
         self.resetChips()
         # Position of dealer at the beginning
         dealer = 0
-        while True:
+        for num_hand in range(self.num_hands):
             self.shuffleCards()
             self.pot = [0 for x in range(2)]
             self.table_chips = 0
@@ -302,5 +315,5 @@ class Game:
 
 
 if __name__ == "__main__":
-    test = Game([Human("Robert"), Bot("Mingu")], 40, [5, 10])
+    test = Game([Human("Robert"), rl_bot.RLBot("Mingu")], 40, [5, 10],2)
     test.play()

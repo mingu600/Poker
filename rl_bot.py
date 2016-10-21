@@ -12,7 +12,7 @@ from heads_up import Game, Bot
 
 class Learner(object):
 
-    def __init__(self,exp_replay="experiences.csv",model=None):
+    def __init__(self,exp_replay="experiences.csv",model=None,epsilon=0.0):
 
         #track "round" (so we can write on every round that has a preceding round)
         self.round = 0
@@ -23,8 +23,7 @@ class Learner(object):
         #available actions (for now just a list of indexes)
         self.actions = range(5)
         self.gamma = 0.5
-        self.epsilon = 0.0
-        self.pos = 0
+        self.epsilon = epsilon
 
         #load pre-existing model
         if model:
@@ -63,7 +62,6 @@ class Learner(object):
         self.model.save(self.model_name)
 
     def compute_action(self,state,reward=0):
-        #record the experience if it isn't the first round
 
         self.last_state = state
 
@@ -82,14 +80,15 @@ class Learner(object):
             return action
 
     #subroutine to record experiences
-    def experience(self, state, action, new_state, reward=''):
-        #self.exp_writer.writerow(state + [action] + [reward] + new_state)
-        pass
+    def experience(self, new_state='NULL', reward=0):
+        self.exp_writer.writerow(self.last_state + [self.last_action] + [reward] + new_state)
 
 
 class RLBot(Bot):
     def bet(self,min_bet,current_bet,game):
+
         min_bet -= current_bet
+
         #calculate state
         hand_str = self.calc_hand_strength(game)
         pos = np.int(game.player_list[0] is self)
@@ -99,7 +98,14 @@ class RLBot(Bot):
         pot_size = sum(game.pot) / (self.chips + game.player_list[pos].chips)
         round_num = game.bet_round
         state = [hand_str,pos,bankroll,opp_bankroll,opp_last_bet,pot_size, round_num]
+
+        #based on new state and no immediate reward, record experience
+        if self.recorder and game.bet_round > 0:
+            self.learner.experience(new_state=state)
+
+        #now compute action
         action = self.learner.compute_action(state)
+
         bet_sizes = [-10, min_bet, 0.5 * sum(game.pot), sum(game.pot), 1.5 * sum(game.pot), self.chips]
         bet = round(bet_sizes[action])
         #reward will be 0 for the last round
@@ -129,16 +135,24 @@ class RLBot(Bot):
         return bet
 
     #indicate to bot that a given round has ended
-    #TODO: calculate reward
-    def end_round(self, game):
-        self.learner.reset()
+    def end_round(self, game, winnings):
+        if self.recorder:
+            total_chips = game.chips*game.num_players
+            reward = float(winnings)/total_chips
+            self.learner.experience(reward=reward)
 
     def experience(self, state, action, new_state, reward=''):
         #self.exp_writer.writerow(state + [action] + [reward] + new_state)
         pass
 
+    def end(self):
+        self.learner.end()
 
-    def __init__(self,name):
+    def __init__(self,name,recorder=True):
+        
+        #whether we want to have this bot record its actions or not
+        self.recorder = recorder
+
         self.learner = Learner()
 
         Bot.__init__(self, name)
