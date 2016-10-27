@@ -207,7 +207,6 @@ class Game:
         return result
 
     def distribute_chips(self, order=0):
-
         #keep track of winnings for each player so we can pass it to bots
         winnings = self.player_num*[0]
 
@@ -266,14 +265,14 @@ class Game:
             # People are dealt cards at the start of the round
             self.dealCards()
             # Small and Big blinds are put on the table
-            self.player_list[(dealer + 1) % 2].chips -= self.blinds[0]
             #self.player_list[(dealer + 1) % self.player_num].current_bet = self.blinds[0]
             print(self.player_list[(dealer + 1) % 2].name + " pays small blind of " + str(self.blinds[0]))
+            self.player_list[(dealer + 1) % 2].chips -= self.blinds[0]
             self.pot[(dealer + 1) % 2] = self.blinds[0]
-            self.player_list[dealer % 2].chips -= self.blinds[1]
             #self.player_list[(dealer + 2) % self.player_num].current_bet = self.blinds[1]
             print(self.player_list[dealer % 2].name + " pays big blind of " + str(self.blinds[1]))
-            self.pot[(dealer + 2) % self.player_num] = self.blinds[1]
+            self.pot[dealer % 2] = min([self.player_list[dealer % 2].chips,self.blinds[1]])
+            self.player_list[dealer % 2].chips -= min([self.player_list[dealer % 2].chips,self.blinds[1]])
     #self.table_chips += self.blinds[1] + self.blinds[0]
             min_bet = self.blinds[1]
             self.bet_round = 0
@@ -321,5 +320,6 @@ class Game:
 
 
 if __name__ == "__main__":
-    test = Game([Human("Robert"), rl_bot.RLBot("Mingu")], 40, [5, 10])
-    test.play()
+    for i in range(100):
+        test = Game([Bot("Robert"), Bot("Mingu")], 40, [5, 10])
+        test.play()
