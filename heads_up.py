@@ -229,6 +229,8 @@ class Game:
         else:
             print "Player %s won %d chips" % (self.player_list[handRank[0][0]].name,0)
             print "Player %s won %d chips" % (self.player_list[handRank[0][1]].name,0)
+            self.player_list[0].chips += self.pot[0]
+            self.player_list[1].chips += self.pot[1]
         for i in range(2):
             print self.player_list[i].name + ': ' + str(self.player_list[i].chips)
         print "\n"
@@ -319,5 +321,5 @@ class Game:
 
 
 if __name__ == "__main__":
-    test = Game([Human("Robert"), Bot("Mingu")], 40, [5, 10])
+    test = Game([Human("Robert"), rl_bot.RLBot("Mingu")], 40, [5, 10])
     test.play()
