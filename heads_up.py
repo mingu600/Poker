@@ -6,6 +6,20 @@ import numpy as np
 import rl_bot
 import pdb
 
+from contextlib import contextmanager
+import sys, os
+
+@contextmanager
+def suppress_stdout():
+    with open(os.devnull, "w") as devnull:
+        old_stdout = sys.stdout
+        sys.stdout = devnull
+        try:
+            yield
+        finally:
+            sys.stdout = old_stdout
+
+
 class Player:
     def __init__(self, name):
         self.hand = []
@@ -24,15 +38,18 @@ class Player:
     def calc_hand_strength(self, game):
         score = [0, 0]
         table = game.table[:]
-        for i in range(0, 1000):
+        for i in range(0, 10):
             deck = Deck()
             new = 0
             player1_hand = self.hand
             player2_hand = deck.draw(2)
             if table == []:
                 table = deck.draw(3)
+                while len(set(player1_hand + player2_hand + table)) < len(player1_hand) + len(player2_hand) + len(table):
+                    player2_hand = deck.draw(2)
+                    table = deck.draw(3)
                 new = 1
-            if len(list(set(player1_hand + table).intersection(player2_hand))) == 0:
+            if len(player1_hand) + len(player2_hand) + len(table) == len(set(player1_hand + player2_hand + table)):
                 p1_score = game.evaluator.evaluate(table, player1_hand)
                 p2_score = game.evaluator.evaluate(table, player2_hand)
 
@@ -257,6 +274,9 @@ class Game:
                     self.player_list[i].folded = True
             if self.player_list[0].folded == True or self.player_list[1].folded == True:
                 print "Game Over"
+                for j,i in enumerate(self.player_list):
+                    if isinstance(i, Bot):
+                        i.end()
                 break
             print "Next Round"
             self.player_list = np.roll(self.player_list, 1)
@@ -320,6 +340,11 @@ class Game:
 
 
 if __name__ == "__main__":
-    for i in range(100):
-        test = Game([Bot("Robert"), Bot("Mingu")], 40, [5, 10])
-        test.play()
+    for n in range(10):
+        with suppress_stdout():
+            test = Game([rl_bot.RLBot("Robert"), rl_bot.RLBot("Mingu")], 40, [5, 10])
+            test.play()
+            for j,i in enumerate(test.player_list):
+                if isinstance(i, rl_bot.RLBot):
+                    i.end()
+        print n

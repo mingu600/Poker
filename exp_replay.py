@@ -9,14 +9,13 @@ import csv
 from keras.models import load_model
 from keras.models import Sequential
 from keras.layers import Dense, Activation
-from heads_up import Game
-from heads_up import Bot
 import sys
+import pdb
 
 action = 7
 reward = 8
 columns = 15
-
+chunksize =40
 file_size = 1000
 
 def load_models(model_path):
@@ -31,23 +30,23 @@ def load_data(experiences_path,target_model,epochs,chunksize):
         #read in data in chunks
         df = pd.read_table(experiences_path,chunksize=chunksize)
         for chunk in df:
-            
+
             #separate into end-of-hand and not end-of-hand states
             chunk.iloc[:,reward] = chunk.iloc[:,reward] + (0 if chunk.iloc[:,reward+1].isNull() else ndarray.max(target_model.predict_on_batch(chunk.iloc[:,reward+1:]),axis=1))
             cols = list(chunk.columns)
             yield (chunk.iloc[:,:action].values,chunk.iloc[:,[action,reward]].values)
 
-def train(train_model,data_gen,epochs,batches):
+def train(train_model,data_gen,epochs,batches,m_path):
     for epoch in range(epochs):
         for batch in range(batches):
             b = next(data_gen)
             labels = train_model.predict_on_batch(b[0])
-            labels[b[1][:,0]] = b[1][:,1]  
-            train_model.train_on_batch(b[0],labels)
+            labels[b[1][:,0]] = b[1][:,1]
+            train_model.train_on_batch(b[0],labels, verbose=1)
+    model.save(m_path)
 
 if __name__ == '__main__':
     m_path = sys.argv[1]
     tr_model, ta_model = load_models(m_path)
     data_gen = load_data(sys.argv[2],ta_model,10,chunksize)
-    train(tr_model,data_gen,10,1)
-    
+    train(tr_model,data_gen,10,1,m_path)

@@ -3,6 +3,7 @@ from __future__ import division
 import numpy as np
 import numpy.random as npr
 import math
+import os
 import csv
 from keras.models import load_model
 from keras.models import Sequential
@@ -27,10 +28,10 @@ class Learner(object):
 
         #load pre-existing model
         if model:
-            self.q_model = load_model(model)
+            self.model = load_model(model)
             self.model_name = model
         else:
-            self.q_model = self.build_model()
+            self.model = self.build_model()
             #default name to save model to
             self.model_name = "model.h5"
 
@@ -94,7 +95,10 @@ class RLBot(Bot):
         pos = np.int(game.player_list[0] is self)
         bankroll = self.chips / (self.chips + game.player_list[pos].chips)
         opp_bankroll = game.player_list[pos].chips / (self.chips + game.player_list[pos].chips)
-        opp_last_bet = game.last_bets[pos] / sum(game.pot)
+        if game.last_bets[pos] != None:
+            opp_last_bet = game.last_bets[pos] / sum(game.pot)
+        else:
+            opp_last_bet = 0
         pot_size = sum(game.pot) / (self.chips + game.player_list[pos].chips)
         round_num = game.bet_round
         state = [hand_str,pos,bankroll,opp_bankroll,opp_last_bet,pot_size, round_num]
@@ -151,7 +155,9 @@ class RLBot(Bot):
 
         #whether we want to have this bot record its actions or not
         self.recorder = recorder
-
-        self.learner = Learner()
+        if os.path.isfile('model.h5'):
+            self.learner = Learner(model='model.h5')
+        else:
+            self.learner = Learner()
 
         Bot.__init__(self, name)
