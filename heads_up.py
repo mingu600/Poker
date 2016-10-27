@@ -169,6 +169,10 @@ class Game:
     def resetPot(self):
         self.pot = 0
 
+    def resetFolds(self):
+        for player in self.player_list:
+            player.folded = False
+
     def rounds(self):
         round_num = self.bet_round
         if round_num == 1:
@@ -216,7 +220,7 @@ class Game:
         #print repr(handRank) + '\n'
         if len(handRank[0]) ==1:
             print "Player %s won %d chips" % (self.player_list[handRank[0][0]].name,self.pot[handRank[1][0]])
-            self.player_list[handRank[0][0]].chips += self.pot[handRank[1][0]]
+            self.player_list[handRank[0][0]].chips += sum(self.pot)
             winnings[handRank[0][0]] = self.pot[handRank[1][0]]
             print "Player %s lost %d chips" % (self.player_list[handRank[1][0]].name,self.pot[handRank[1][0]])
             #self.player_list[handRank[1][0]].chips -= self.pot[handRank[1][0]]
@@ -224,9 +228,7 @@ class Game:
 
         else:
             print "Player %s won %d chips" % (self.player_list[handRank[0][0]].name,0)
-            self.player_list[handRank[0][0]].chips += 0
-            print "Player %s won %d chips" % (self.player_list[handRank[1][0]].name,0)
-            self.player_list[handRank[1][0]].chips += 0
+            print "Player %s won %d chips" % (self.player_list[handRank[0][1]].name,0)
         for i in range(2):
             print self.player_list[i].name + ': ' + str(self.player_list[i].chips)
         print "\n"
@@ -300,6 +302,7 @@ class Game:
                             break
                         #still have to verify correct bet
                         self.pot[i % 2] += amount_bet
+                        self.player_list[i%2].chips -= amount_bet
                         if min_bet < self.pot[i % 2]:
                             min_bet = self.pot[i % 2]
                             dealer = i
@@ -309,11 +312,12 @@ class Game:
                 self.rounds()
 
             #distribute chips to winner(s)
-            print self.strengths
             if self.player_list[0].folded == False and self.player_list[1].folded == False:
+                print self.strengths
                 self.distribute_chips()
+            self.resetFolds()
 
 
 if __name__ == "__main__":
-    test = Game([Human("Robert"), rl_bot.RLBot("Mingu")], 40, [5, 10],2)
+    test = Game([Human("Robert"), Bot("Mingu")], 40, [5, 10])
     test.play()

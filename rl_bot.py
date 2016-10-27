@@ -107,13 +107,12 @@ class RLBot(Bot):
         action = self.learner.compute_action(state)
 
         bet_sizes = [-10, min_bet, 0.5 * sum(game.pot), sum(game.pot), 1.5 * sum(game.pot), self.chips]
-        bet = round(bet_sizes[action])
+        bet = int(round(bet_sizes[action]))
         #reward will be 0 for the last round
         #need to police bets
         # if self.round != 0:
         #     #can also do online training
         #     self.experience(self.last_state,self.last_action,reward,state)
-        print self.name
         if min_bet > self.chips:
             bet = self.chips
         if bet > self.chips:
@@ -149,7 +148,7 @@ class RLBot(Bot):
         self.learner.end()
 
     def __init__(self,name,recorder=True):
-        
+
         #whether we want to have this bot record its actions or not
         self.recorder = recorder
 
