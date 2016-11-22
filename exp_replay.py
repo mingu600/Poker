@@ -23,18 +23,21 @@ def load_models(model_path):
     target_model = load_model(model_path)
     return (training_model, target_model)
 
+# def load_data(experiences_path,target_model,epochs,chunksize):
+#
+# #iterate over dataset a certain number of times
+#     for epoch in range(epochs):
+#         #read in data in chunks
+#         df = pd.read_table(experiences_path,chunksize=chunksize)
+#         for chunk in df:
+#
+#             #separate into end-of-hand and not end-of-hand states
+#             chunk.iloc[:,reward] = chunk.iloc[:,reward] + (0 if chunk.iloc[:,reward+1].isNull() else ndarray.max(target_model.predict_on_batch(chunk.iloc[:,reward+1:]),axis=1))
+#             cols = list(chunk.columns)
+#             yield (chunk.iloc[:,:action].values,chunk.iloc[:,[action,reward]].values)
+
 def load_data(experiences_path,target_model,epochs,chunksize):
-
-#iterate over dataset a certain number of times
-    for epoch in range(epochs):
-        #read in data in chunks
-        df = pd.read_table(experiences_path,chunksize=chunksize)
-        for chunk in df:
-
-            #separate into end-of-hand and not end-of-hand states
-            chunk.iloc[:,reward] = chunk.iloc[:,reward] + (0 if chunk.iloc[:,reward+1].isNull() else ndarray.max(target_model.predict_on_batch(chunk.iloc[:,reward+1:]),axis=1))
-            cols = list(chunk.columns)
-            yield (chunk.iloc[:,:action].values,chunk.iloc[:,[action,reward]].values)
+    pd.read_csv(experiences_path)
 
 def train(train_model,data_gen,epochs,batches,m_path):
     for epoch in range(epochs):

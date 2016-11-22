@@ -38,7 +38,7 @@ class Player:
     def calc_hand_strength(self, game):
         score = [0, 0]
         table = game.table[:]
-        for i in range(0, 10):
+        for i in range(0, 100):
             deck = Deck()
             new = 0
             player1_hand = self.hand
@@ -115,9 +115,6 @@ class Bot(Player):
         self.round = 0
         if strategy:
             self.bet = strategy
-
-    def end_round(self, winnings):
-        pass
 
     #shutdown behavior for bot
     def end(self):
@@ -232,7 +229,12 @@ class Game:
         else:
             handRank = order
         if self.player_list[0].folded == False and self.player_list[1].folded == False:
-            self.pot = [min(self.pot), min(self.pot)]
+            if self.pot[0] > self.pot[1]:
+                self.player_list[0].chips += self.pot[0] - self.pot[1]
+                self.pot = [min(self.pot), min(self.pot)]
+            elif self.pot[0] < self.pot[1]:
+                self.player_list[1].chips += self.pot[1] - self.pot[0]
+                self.pot = [min(self.pot), min(self.pot)]
         #print repr(handRank) + '\n'
         if len(handRank[0]) ==1:
             print "Player %s won %d chips" % (self.player_list[handRank[0][0]].name,self.pot[handRank[1][0]])
@@ -251,8 +253,8 @@ class Game:
             print self.player_list[i].name + ': ' + str(self.player_list[i].chips)
         print "\n"
         for j,i in enumerate(self.player_list):
-            if isinstance(i, Bot):
-                i.end_round(winnings[j])
+            if not isinstance(i, Human):
+                i.end_round(self, winnings[j])
 
     def play(self):
         # Gameplay is initilalized
@@ -340,11 +342,12 @@ class Game:
 
 
 if __name__ == "__main__":
-    for n in range(10):
+    test = Game([rl_bot.GreedyBot("Alex"), rl_bot.RLBot("Mingu")], 40, [5, 10])
+    for n in range(200):
         with suppress_stdout():
-            test = Game([rl_bot.RLBot("Robert"), rl_bot.RLBot("Mingu")], 40, [5, 10])
             test.play()
             for j,i in enumerate(test.player_list):
                 if isinstance(i, rl_bot.RLBot):
+                    i.learner.round = 0
                     i.end()
         print n
