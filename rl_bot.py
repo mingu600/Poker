@@ -146,6 +146,7 @@ class RLBot(Bot):
         self.learner.last_state = state
         if self.learner.round > 0:
             self.learner.train_model(state)
+
         #now compute action
         action = self.learner.compute_action(state)
 
@@ -223,7 +224,7 @@ class GreedyBot(Bot):
         elif hand_str < 0.7:
             bet = int(1.3 * min_bet)
         elif hand_str < 0.8:
-            bet = int(1.5*min_bet)
+            bet = int(1.5 * min_bet)
         else:
             bet = int(2 * min_bet)
         #reward will be 0 for the last round

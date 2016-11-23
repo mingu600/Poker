@@ -5,6 +5,8 @@ from operator import itemgetter
 import numpy as np
 import rl_bot
 import pdb
+import argparse as ap
+
 
 from contextlib import contextmanager
 import sys, os
@@ -342,12 +344,74 @@ class Game:
 
 
 if __name__ == "__main__":
-    test = Game([rl_bot.GreedyBot("Alex"), rl_bot.RLBot("Mingu")], 40, [5, 10])
-    for n in range(200):
-        with suppress_stdout():
+
+    #parse command line
+
+    #bots of players
+    p1 = rl_bot.RLBot
+    p2 = rl_bot.GreedyBot
+
+    #number of rounds to run
+    length = 100
+
+    #chips to initiate rounds with
+    chips = 40
+
+    #blinds (only track the little blind)
+    lb = 5
+    
+    #construct parser
+    parser = ap.ArgumentParser(description='Input parameters to run the game')
+    parser.add_argument("-n","--number-iterations",help="number of times to simulate game between two bots",type=int,dest="n")
+    parser.add_argument("-p1","--player1-controller",help="name of program to control player 1. [rlbot, greedy, human]",type=str,dest="p1")
+    parser.add_argument("-p2","--player2-controller",help="name of program to control player 2. [rlbot, greedy, human]",type=str,dest="p2")
+    parser.add_argument("-c","--start-chips",help="number of chips to give players at the beginning of the game",type=int,dest="c")
+    parser.add_argument("-lb","--little-blind",help="number of chips for little blind, big blind will be double this number",type=int,dest="lb")
+    parser.add_argument("-v","--verbose",help="allow output to stdout from print statements throughout code",action="store_true")
+    parser.add_argument("-p","--performance",help="performance statistics for player 1",action="store_true")
+    parser.add_argument("-t","--timing",help="print time usage statistics for poker and player components",action="store_true")
+
+    #parse input
+    results = parser.parse_args(sys.argv[1:])
+    if results.n is not None:
+        length = results.n
+    if results.c is not None:
+        chips = results.c 
+    if results.lb is not None:
+        lb = results.lb
+    #pass string representing player ('p1','p2'), as well as controller from command line args
+    def assign_player(p,controller):        
+        if controller == 'greedy':
+            locals()[p] = rl_bot.GreedyBot
+        elif controller == 'rlbot':
+            locals()[p] = rl_bot.RLBot
+        elif controller == 'human':
+            if not results.verbose:
+                print >> sys.stderr, 'Cannot have human player without verbose output'
+                sys.exit(1)
+            locals()[p] = Human
+        else:
+            print >> sys.stderr, 'Unrecognised player controller. heads_up.py -h to lean more'
+            sys.exit(1)
+    #we will use directly the flags for output
+    if results.p1 is not None:
+        assign_player("p1",results.p1)
+    if results.p2 is not None:
+        assign_player("p2",results.p2)
+
+    test = Game([p1("Alex"), p2("Mingu")], chips, [lb, 2*lb])
+    for n in range(length):
+        def play_games():
             test.play()
             for j,i in enumerate(test.player_list):
                 if isinstance(i, rl_bot.RLBot):
                     i.learner.round = 0
                     i.end()
+
+        if results.verbose:
+            test.play()
+        else:
+            with suppress_stdout():
+                output = play_games()
+            
         print n
