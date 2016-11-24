@@ -57,7 +57,7 @@ class Learner(object):
     def build_model(self):
         print "Building new model..."
         model = Sequential()
-        model.add(Dense(8,input_dim=state_size))
+        model.add(Dense(12,input_dim=state_size))
         # model.add(Activation('relu'))
         # model.add(Dense(12))
         model.add(Activation('relu'))
@@ -127,7 +127,7 @@ class Learner(object):
 
                 X_train = np.array(X_train)
                 y_train = np.array(y_train)
-                self.model.fit(X_train, y_train, batch_size=self.batchSize, nb_epoch=5, verbose=1, shuffle=True)
+                self.model.fit(X_train, y_train, batch_size=self.batchSize, nb_epoch=2, verbose=1, shuffle=True)
                 self.model.save('model.h5')
                 self.replay = []
         signal.signal(signal.SIGINT,signal.SIG_DFL)
