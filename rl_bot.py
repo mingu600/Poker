@@ -12,6 +12,7 @@ from keras.models import Sequential
 from keras.optimizers import Adam
 from keras.layers import Dense, Activation
 from heads_up import Game, Bot
+import time
 # import matplotlib as mpl
 #import matplotlib.pyplot as plt
 
@@ -186,10 +187,16 @@ class RLBot(Bot):
         ax.scatter(x, y)
         plt.show()
 
-    def bet(self,min_bet,current_bet,game):
+    def bet(self,min_bet,current_bet,times,game):
         min_bet -= current_bet
         #calculate state
+
+        #time hand str calculation
+        t = time.time()
         hand_str = self.calc_hand_strength(game)
+        times['strength']['count'] += 1
+        times['strength']['total'] += time.time() - t
+        
         pos = np.int(game.player_list[0] is self)
         bankroll = self.chips / (self.chips + game.player_list[pos].chips)
         opp_bankroll = game.player_list[pos].chips / (self.chips + game.player_list[pos].chips)
@@ -269,11 +276,17 @@ class RLBot(Bot):
 
 
 class GreedyBot(Bot):
-    def bet(self,min_bet,current_bet,game):
+    def bet(self,min_bet,current_bet,times,game):
 
         min_bet -= current_bet
         #calculate state
+
+        #time the hand strength calculation
+        t = time.time()
         hand_str = self.calc_hand_strength(game)
+        times['strength']['count'] += 1
+        times['strength']['total'] += time.time() - t
+
         if hand_str > 0.9:
             bet = self.chips
         elif hand_str < 0.5 and min_bet > 0:
