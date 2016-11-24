@@ -261,7 +261,7 @@ class RLBot(Bot):
         #whether we want to have this bot record its actions or not
         self.recorder = recorder
         if os.path.isfile('model.h5'):
-            self.learner = Learner(model='model.h5')
+            self.learner = Learner(gamma=gamma,epsilon=epsilon,model='model.h5')
         else:
             self.learner = Learner(gamma=gamma,epsilon=epsilon)
 

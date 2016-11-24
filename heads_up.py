@@ -427,6 +427,7 @@ if __name__ == "__main__":
         if results.p1 is not None:
             assign_player("p1",results.p1[0])
             p1_args = map(float, results.p1[1:])
+            print p1_args
         if results.p2 is not None:
             assign_player("p2",results.p2[0])
             p2_args = map(float, results.p2[1:])
