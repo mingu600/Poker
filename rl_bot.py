@@ -4,7 +4,7 @@ import numpy as np
 import numpy.random as npr
 import random
 import math
-import os
+import os, sys, signal
 import pdb
 import csv
 from keras.models import load_model
@@ -15,7 +15,7 @@ from heads_up import Game, Bot
 
 class Learner(object):
 
-    def __init__(self,exp_replay="experiences.csv",model=None,epsilon=0.0):
+    def __init__(self,exp_replay="experiences.csv",model=None,epsilon=0.0,gamma=0.5):
 
         #track "round" (so we can write on every round that has a preceding round)
         self.round = 0
@@ -25,8 +25,10 @@ class Learner(object):
 
         #available actions (for now just a list of indexes)
         self.actions = range(5)
-        self.gamma = 0.5
+        self.gamma = gamma
+        print gamma
         self.epsilon = epsilon
+        print epsilon
 
         #load pre-existing model
         if model:
@@ -90,6 +92,12 @@ class Learner(object):
             return action
 
     def train_model(self, state=None, reward=0):
+        def signal_handler(signum, frame):
+            if signum is signal.SIGINT:
+                print >> sys.stderr, "interrupted during training"
+                self.model.save('model.h5')
+                sys.exit(0)
+        signal.signal(signal.SIGINT,signal_handler)
         if self.last_state != None:
             if len(self.replay) < self.buffer:
                 self.replay.append((self.last_state, self.last_action, reward, state))
@@ -122,7 +130,7 @@ class Learner(object):
                 y_train = np.array(y_train)
                 self.model.fit(X_train, y_train, batch_size=self.batchSize, nb_epoch=1, verbose=1)
                 self.model.save('model.h5')
-
+        signal.signal(signal.SIGINT,signal.SIG_DFL)
     # #subroutine to record experiences
     # def experience(self, new_state=['NULL'], reward=0):
     #     self.exp_writer.writerow(self.last_state + [self.last_action] + [reward] + new_state)
@@ -197,14 +205,14 @@ class RLBot(Bot):
     def end(self):
         self.learner.end()
 
-    def __init__(self,name,recorder=True):
+    def __init__(self,name,epsilon=0.0,gamma=0.5,recorder=True):
 
         #whether we want to have this bot record its actions or not
         self.recorder = recorder
         if os.path.isfile('model.h5'):
             self.learner = Learner(model='model.h5')
         else:
-            self.learner = Learner()
+            self.learner = Learner(gamma=gamma,epsilon=epsilon)
 
         Bot.__init__(self, name)
 
