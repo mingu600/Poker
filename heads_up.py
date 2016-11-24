@@ -262,7 +262,7 @@ class Game:
 
     def play(self):
 
-        
+
         t1 = time.time()
 
         # Gameplay is initilalized
@@ -353,7 +353,6 @@ class Game:
 
             #distribute chips to winner(s)
             if self.player_list[0].folded == False and self.player_list[1].folded == False:
-                print self.strengths
                 self.distribute_chips()
             self.resetFolds()
 
@@ -396,6 +395,21 @@ if __name__ == "__main__":
 
     #parse input
     results = parser.parse_args(sys.argv[1:])
+    if results.performance:
+        score = 0
+        test = Game([rl_bot.GreedyBot("Alex"), rl_bot.RLBot("Mingu")], 40, [5, 10])
+        for n in range(200):
+            with suppress_stdout():
+                test.play()
+                for j,i in enumerate(test.player_list):
+                    if isinstance(i, rl_bot.RLBot):
+                        if i.chips > 0:
+                            score += 1
+                        i.learner.round = 0
+                        i.end()
+            print n
+        print 'Win Percentage: ' + str(float(score) / 2) + '%'
+        sys.exit(1)
 
     if results.custom:
         score = 0

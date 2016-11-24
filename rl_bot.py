@@ -20,7 +20,7 @@ state_size = 7
 
 class Learner(object):
 
-    def __init__(self,exp_replay="experiences.csv",model=None,epsilon=1.0,gamma=0.5):
+    def __init__(self,exp_replay="experiences.csv",model=None,epsilon=0.0,gamma=0.5):
 
         #track "round" (so we can write on every round that has a preceding round)
         self.round = 0
@@ -57,9 +57,9 @@ class Learner(object):
     def build_model(self):
         print "Building new model..."
         model = Sequential()
-        model.add(Dense(48,input_dim=state_size))
-        model.add(Activation('relu'))
-        model.add(Dense(12))
+        model.add(Dense(8,input_dim=state_size))
+        # model.add(Activation('relu'))
+        # model.add(Dense(12))
         model.add(Activation('relu'))
         model.add(Dense(6))
         model.add(Activation('softmax'))
@@ -91,6 +91,7 @@ class Learner(object):
         else:
             #choose most advantageous action
             guesses = self.model.predict(np.array(state).reshape(1,state_size),batch_size=1,verbose=0)
+            print guesses
             action = np.argmax(guesses)
             self.last_action = action
             return action
@@ -109,8 +110,7 @@ class Learner(object):
             else:
                 X_train = []
                 y_train = []
-                minibatch = random.sample(self.replay, self.batchSize)
-                for event in minibatch:
+                for event in self.replay:
                     #Get max_Q(S',a)
                     old_state, action, reward, new_state = event
                     old_qval = self.model.predict(np.array(old_state).reshape(1,state_size), batch_size=1)
@@ -127,7 +127,7 @@ class Learner(object):
 
                 X_train = np.array(X_train)
                 y_train = np.array(y_train)
-                self.model.fit(X_train, y_train, batch_size=self.batchSize, nb_epoch=2, verbose=1, shuffle=True)
+                self.model.fit(X_train, y_train, batch_size=self.batchSize, nb_epoch=5, verbose=1, shuffle=True)
                 self.model.save('model.h5')
                 self.replay = []
         signal.signal(signal.SIGINT,signal.SIG_DFL)
@@ -159,7 +159,7 @@ class RLBot(Bot):
         hand_str = self.calc_hand_strength(game)
         times['strength']['count'] += 1
         times['strength']['total'] += time.time() - t
-        
+
         pos = np.int(game.player_list[0] is self)
         bankroll = self.chips / (self.chips + game.player_list[pos].chips)
         opp_bankroll = game.player_list[pos].chips / (self.chips + game.player_list[pos].chips)
