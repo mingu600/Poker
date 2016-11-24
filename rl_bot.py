@@ -96,7 +96,6 @@ class Learner(object):
             return action
 
     def train_model(self, state=None, reward=0):
-<<<<<<< HEAD
         if len(self.replay) < self.buffer:
             self.replay.append((self.last_state, self.last_action, reward, state))
         else: #if buffer full, overwrite old values
@@ -129,7 +128,6 @@ class Learner(object):
             self.model.fit(X_train, y_train, batch_size=self.batchSize, nb_epoch=1, verbose=1)
             self.model.save('model.h5')
 
-=======
         def signal_handler(signum, frame):
             if signum is signal.SIGINT:
                 print >> sys.stderr, "interrupted during training"
@@ -169,7 +167,6 @@ class Learner(object):
                 self.model.fit(X_train, y_train, batch_size=self.batchSize, nb_epoch=1, verbose=1)
                 self.model.save('model.h5')
         signal.signal(signal.SIGINT,signal.SIG_DFL)
->>>>>>> 3243c692d5b32bf4f51e08e65e7b0c34606a0549
     # #subroutine to record experiences
     # def experience(self, new_state=['NULL'], reward=0):
     #     self.exp_writer.writerow(self.last_state + [self.last_action] + [reward] + new_state)
