@@ -407,7 +407,8 @@ if __name__ == "__main__":
                             score += 1
                         i.learner.round = 0
                         i.end()
-            print n
+            if n % 25 == 0:
+                print n
         print 'Win Percentage: ' + str(float(score) / 2) + '%'
         sys.exit(1)
 
@@ -479,7 +480,8 @@ if __name__ == "__main__":
             else:
                 with suppress_stdout():
                     output = play_games()
-            print n
+            if n % 25 == 0:
+                print n
 
         if results.timing:
             print "Total time taken: {:0}".format(time.time() - t)
