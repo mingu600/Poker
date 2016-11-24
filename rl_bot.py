@@ -4,7 +4,7 @@ import numpy as np
 import numpy.random as npr
 import random
 import math
-import os
+import os, sys, signal
 import pdb
 import csv
 from keras.models import load_model
@@ -19,7 +19,7 @@ state_size = 7
 
 class Learner(object):
 
-    def __init__(self,exp_replay="experiences.csv",model=None,epsilon=0.0):
+    def __init__(self,exp_replay="experiences.csv",model=None,epsilon=0.0,gamma=0.5):
 
         #track "round" (so we can write on every round that has a preceding round)
         self.round = 0
@@ -29,8 +29,10 @@ class Learner(object):
 
         #available actions (for now just a list of indexes)
         self.actions = range(5)
-        self.gamma = 0.5
+        self.gamma = gamma
+        print gamma
         self.epsilon = epsilon
+        print epsilon
 
         #load pre-existing model
         if model:
@@ -94,6 +96,7 @@ class Learner(object):
             return action
 
     def train_model(self, state=None, reward=0):
+<<<<<<< HEAD
         if len(self.replay) < self.buffer:
             self.replay.append((self.last_state, self.last_action, reward, state))
         else: #if buffer full, overwrite old values
@@ -126,6 +129,47 @@ class Learner(object):
             self.model.fit(X_train, y_train, batch_size=self.batchSize, nb_epoch=1, verbose=1)
             self.model.save('model.h5')
 
+=======
+        def signal_handler(signum, frame):
+            if signum is signal.SIGINT:
+                print >> sys.stderr, "interrupted during training"
+                self.model.save('model.h5')
+                sys.exit(0)
+        signal.signal(signal.SIGINT,signal_handler)
+        if self.last_state != None:
+            if len(self.replay) < self.buffer:
+                self.replay.append((self.last_state, self.last_action, reward, state))
+            else: #if buffer full, overwrite old values
+                if self.index < (self.buffer-1):
+                    self.index += 1
+                else:
+                    self.index = 0
+                self.replay[self.index] = (self.last_state, self.last_action, reward, state)
+                #randomly sample our experience replay memory
+                minibatch = random.sample(self.replay, self.batchSize)
+                X_train = []
+                y_train = []
+                for event in minibatch:
+                    #Get max_Q(S',a)
+                    old_state, action, reward, new_state = event
+                    old_qval = self.model.predict(np.array(old_state).reshape(1,7), batch_size=1)
+                    y = np.array(old_qval)
+                    if reward == 0 and new_state != None: #non-terminal state
+                        new_qval = self.model.predict(np.array(new_state).reshape(1,7), batch_size=1)
+                        max_Qval = np.max(new_qval)
+                        update = (reward + (self.gamma * max_Qval))
+                    else: #terminal state
+                        update = reward
+                    y[0][action] = update
+                    X_train.append(old_state)
+                    y_train.append(y[0])
+
+                X_train = np.array(X_train)
+                y_train = np.array(y_train)
+                self.model.fit(X_train, y_train, batch_size=self.batchSize, nb_epoch=1, verbose=1)
+                self.model.save('model.h5')
+        signal.signal(signal.SIGINT,signal.SIG_DFL)
+>>>>>>> 3243c692d5b32bf4f51e08e65e7b0c34606a0549
     # #subroutine to record experiences
     # def experience(self, new_state=['NULL'], reward=0):
     #     self.exp_writer.writerow(self.last_state + [self.last_action] + [reward] + new_state)
@@ -162,6 +206,7 @@ class RLBot(Bot):
         self.learner.last_state = state
         if self.learner.round > 0:
             self.learner.train_model(state)
+
         #now compute action
         action = self.learner.compute_action(state)
         if action == 0 and min_bet == 0:
@@ -214,14 +259,14 @@ class RLBot(Bot):
     def end(self):
         self.learner.end()
 
-    def __init__(self,name,recorder=True):
+    def __init__(self,name,epsilon=0.0,gamma=0.5,recorder=True):
 
         #whether we want to have this bot record its actions or not
         self.recorder = recorder
         if os.path.isfile('model.h5'):
             self.learner = Learner(model='model.h5')
         else:
-            self.learner = Learner()
+            self.learner = Learner(gamma=gamma,epsilon=epsilon)
 
         Bot.__init__(self, name)
 
@@ -241,7 +286,7 @@ class GreedyBot(Bot):
         elif hand_str < 0.7:
             bet = int(1.3 * min_bet)
         elif hand_str < 0.8:
-            bet = int(1.5*min_bet)
+            bet = int(1.5 * min_bet)
         else:
             bet = int(2 * min_bet)
         #reward will be 0 for the last round
