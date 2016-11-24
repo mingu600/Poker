@@ -47,12 +47,12 @@ class Learner(object):
         self.index = 0
         self.batchSize = 40
 
-        # #create writer for experiences
-        # #must close on end of session
-        # f = open(exp_replay,'a')
-        # writer = csv.writer(f)
-        # self.exp_file = f
-        # self.exp_writer = writer
+        #create writer for experiences
+        #must close on end of session
+        f = open(exp_replay,'a')
+        writer = csv.writer(f)
+        self.exp_file = f
+        self.exp_writer = writer
 
     def build_model(self):
         print "Building new model..."
@@ -67,8 +67,8 @@ class Learner(object):
         return model
 
     def end(self):
-        #shut down writer
-        #self.exp_file.close()
+#         #shut down writer
+#         self.exp_file.close()
 
         #save/export model
         self.model.save(self.model_name)
@@ -96,13 +96,15 @@ class Learner(object):
             self.last_action = action
             return action
 
-    def train_model(self, state=None, reward=0):
+    def train_model(self, state=[None]*state_size, reward=0):
+
         def signal_handler(signum, frame):
             if signum is signal.SIGINT:
                 print >> sys.stderr, "interrupted during training"
                 self.model.save('model.h5')
                 sys.exit(0)
         signal.signal(signal.SIGINT,signal_handler)
+
         experience = (self.last_state, self.last_action, reward, state)
         if experience[0] != None and experience[1] != None:
             if len(self.replay) < self.buffer:
@@ -113,9 +115,10 @@ class Learner(object):
                 for event in self.replay:
                     #Get max_Q(S',a)
                     old_state, action, reward, new_state = event
+                    self.exp_writer.writerow(old_state + [action] + [reward] + new_state)
                     old_qval = self.model.predict(np.array(old_state).reshape(1,state_size), batch_size=1)
                     y = np.array(old_qval)
-                    if reward == 0 and new_state != None: #non-terminal state
+                    if reward == 0 and new_state[0] != None: #non-terminal state
                         new_qval = self.model.predict(np.array(new_state).reshape(1,state_size), batch_size=1)
                         max_Qval = np.max(new_qval)
                         update = (reward + (self.gamma * max_Qval))
@@ -131,10 +134,6 @@ class Learner(object):
                 self.model.save('model.h5')
                 self.replay = []
         signal.signal(signal.SIGINT,signal.SIG_DFL)
-    # #subroutine to record experiences
-    # def experience(self, new_state=['NULL'], reward=0):
-    #     self.exp_writer.writerow(self.last_state + [self.last_action] + [reward] + new_state)
-
 
 class RLBot(Bot):
     def preflop_graph(self, pos=0, bankroll=0.5, opp_bankroll=0.5, opp_last_bet=0, pot_size=0.1, round_num=1):
