@@ -445,5 +445,4 @@ if __name__ == "__main__":
             else:
                 with suppress_stdout():
                     output = play_games()
-
             print n
