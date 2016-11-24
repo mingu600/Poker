@@ -6,6 +6,7 @@ import numpy as np
 import rl_bot
 import pdb
 import argparse as ap
+import time
 
 
 from contextlib import contextmanager
@@ -78,7 +79,7 @@ class Human(Player):
         self.folded = False
         self.bot = False
 
-    def bet(self, min_bet, current_bet, game=None):
+    def bet(self, min_bet, current_bet, times, game=None):
         bet = -5
         min_bet -= current_bet
         while bet < min_bet and bet != -10:
@@ -122,7 +123,7 @@ class Bot(Player):
     def end(self):
         pass
 
-    def bet(self, min_bet, current_bet,game=None):
+    def bet(self, min_bet, current_bet,times,game=None):
         # For now, bot only checks or calls
         bet = -5
         min_bet -= current_bet
@@ -164,6 +165,8 @@ class Game:
         self.bet_round = 0
         self.strengths =[[], []]
         self.last_bets = [None,None]
+
+        self.times = dict([('main',{'total':0,'count':0}),('strength',{'total':0,'count':0})]+[(player.name,{'total':0,'count':0}) for player in player_list])
 
     def dealCards(self):
         for i in range(2):
@@ -258,6 +261,10 @@ class Game:
                 i.end_round(self, winnings[j])
 
     def play(self):
+
+        
+        t1 = time.time()
+
         # Gameplay is initilalized
         self.resetChips()
         # Position of dealer at the beginning
@@ -323,7 +330,13 @@ class Game:
                             continue
                         print("Current bet: " + str(min_bet))
                         self.player_list[i % 2].printName()
-                        amount_bet = self.player_list[i % 2].bet(min_bet, self.pot[i % 2], self)
+
+                        #track amount of time for player
+                        t2 = time.time()
+                        amount_bet = self.player_list[i % 2].bet(min_bet, self.pot[i % 2], self.times, self)
+                        self.times[self.player_list[i % 2].name]['count'] += 1
+                        self.times[self.player_list[i % 2].name]['total'] += time.time() - t2
+
                         self.last_bets[i % 2] = amount_bet
                         if self.player_list[0].folded == True or self.player_list[1].folded == True :
                             break
@@ -343,6 +356,11 @@ class Game:
                 print self.strengths
                 self.distribute_chips()
             self.resetFolds()
+
+        #update times
+        self.times['main']['count'] += 1
+        self.times['main']['total'] += time.time() - t1
+
 
 
 if __name__ == "__main__":
@@ -427,12 +445,13 @@ if __name__ == "__main__":
         if results.p1 is not None:
             assign_player("p1",results.p1[0])
             p1_args = map(float, results.p1[1:])
-            print p1_args
         if results.p2 is not None:
             assign_player("p2",results.p2[0])
             p2_args = map(float, results.p2[1:])
 
         test = Game([p1("Alex", *p1_args), p2("Mingu", *p2_args)], chips, [lb, 2*lb])
+
+        t = time.time()
         for n in range(length):
             def play_games():
                 test.play()
@@ -447,3 +466,8 @@ if __name__ == "__main__":
                 with suppress_stdout():
                     output = play_games()
             print n
+
+        if results.timing:
+            print "Total time taken: {:0}".format(time.time() - t)
+            for k,v in test.times.items():
+                print "Code Segment: {}, Times executed: {}, Total time: {}, Average Time: {}".format(k,v['count'],v['total'],float(v['total'])/v['count'])
