@@ -12,6 +12,10 @@ from keras.models import Sequential
 from keras.optimizers import Adam
 from keras.layers import Dense, Activation
 from heads_up import Game, Bot
+# import matplotlib as mpl
+#import matplotlib.pyplot as plt
+
+state_size = 7
 
 class Learner(object):
 
@@ -52,10 +56,10 @@ class Learner(object):
     def build_model(self):
         print "Building new model..."
         model = Sequential()
-        model.add(Dense(20,input_dim=7))
+        model.add(Dense(48,input_dim=state_size))
         model.add(Activation('relu'))
-        # model.add(Dense(20))
-        # model.add(Activation('relu'))
+        model.add(Dense(12))
+        model.add(Activation('relu'))
         model.add(Dense(6))
         model.add(Activation('softmax'))
         model.compile(loss='mse',optimizer=Adam(lr=1e-6))
@@ -74,7 +78,7 @@ class Learner(object):
         #decide whether or not to be greedy
         r = npr.random()
         if self.epsilon > 0:
-            self.epsilon -= 0.00001
+            self.epsilon -= 0.0002
         else:
             self.epsilon = 0
         if r < self.epsilon:
@@ -84,44 +88,43 @@ class Learner(object):
             return action
         else:
             #choose most advantageous action
-            guesses = self.model.predict(np.array(state).reshape(1,7),batch_size=1,verbose=0)
+            guesses = self.model.predict(np.array(state).reshape(1,state_size),batch_size=1,verbose=0)
             action = np.argmax(guesses)
             self.last_action = action
             return action
 
     def train_model(self, state=None, reward=0):
-        if self.last_state != None:
-            if len(self.replay) < self.buffer:
-                self.replay.append((self.last_state, self.last_action, reward, state))
-            else: #if buffer full, overwrite old values
-                if self.index < (self.buffer-1):
-                    self.index += 1
-                else:
-                    self.index = 0
-                self.replay[self.index] = (self.last_state, self.last_action, reward, state)
-                #randomly sample our experience replay memory
-                minibatch = random.sample(self.replay, self.batchSize)
-                X_train = []
-                y_train = []
-                for event in minibatch:
-                    #Get max_Q(S',a)
-                    old_state, action, reward, new_state = event
-                    old_qval = self.model.predict(np.array(old_state).reshape(1,7), batch_size=1)
-                    y = np.array(old_qval)
-                    if reward == 0 and new_state != None: #non-terminal state
-                        new_qval = self.model.predict(np.array(new_state).reshape(1,7), batch_size=1)
-                        max_Qval = np.max(new_qval)
-                        update = (reward + (self.gamma * max_Qval))
-                    else: #terminal state
-                        update = reward
-                    y[0][action] = update
-                    X_train.append(old_state)
-                    y_train.append(y[0])
+        if len(self.replay) < self.buffer:
+            self.replay.append((self.last_state, self.last_action, reward, state))
+        else: #if buffer full, overwrite old values
+            if self.index < (self.buffer-1):
+                self.index += 1
+            else:
+                self.index = 0
+            self.replay[self.index] = (self.last_state, self.last_action, reward, state)
+            #randomly sample our experience replay memory
+            minibatch = random.sample(self.replay, self.batchSize)
+            X_train = []
+            y_train = []
+            for event in minibatch:
+                #Get max_Q(S',a)
+                old_state, action, reward, new_state = event
+                old_qval = self.model.predict(np.array(old_state).reshape(1,state_size), batch_size=1)
+                y = np.array(old_qval)
+                if reward == 0 and new_state != None: #non-terminal state
+                    new_qval = self.model.predict(np.array(new_state).reshape(1,state_size), batch_size=1)
+                    max_Qval = np.max(new_qval)
+                    update = (reward + (self.gamma * max_Qval))
+                else: #terminal state
+                    update = reward
+                y[0][action] = update
+                X_train.append(old_state)
+                y_train.append(y[0])
 
-                X_train = np.array(X_train)
-                y_train = np.array(y_train)
-                self.model.fit(X_train, y_train, batch_size=self.batchSize, nb_epoch=1, verbose=1)
-                self.model.save('model.h5')
+            X_train = np.array(X_train)
+            y_train = np.array(y_train)
+            self.model.fit(X_train, y_train, batch_size=self.batchSize, nb_epoch=1, verbose=1)
+            self.model.save('model.h5')
 
     # #subroutine to record experiences
     # def experience(self, new_state=['NULL'], reward=0):
@@ -129,6 +132,19 @@ class Learner(object):
 
 
 class RLBot(Bot):
+    def preflop_graph(self, pos=0, bankroll=0.5, opp_bankroll=0.5, opp_last_bet=0, pot_size=0.1, round_num=1):
+        x = [float(x)/100 for x in range(0, 100)]
+        y = []
+        for hand_str in x:
+            guesses = self.learner.model.predict(np.array([hand_str, pos, bankroll,opp_bankroll,opp_last_bet,pot_size, round_num]).reshape(1,state_size),batch_size=1,verbose=0)
+            action = np.argmax(guesses)
+            y.append(action)
+        ax = fig.add_subplot(1,1,1,
+            title='Effect of Hand Strength on Betting Pattern',
+            xlabel='Hand Strength', ylabel='Action')
+        ax.scatter(x, y)
+        plt.show()
+
     def bet(self,min_bet,current_bet,game):
         min_bet -= current_bet
         #calculate state
@@ -142,13 +158,15 @@ class RLBot(Bot):
             opp_last_bet = 0
         pot_size = sum(game.pot) / (self.chips + game.player_list[pos].chips)
         round_num = game.bet_round
-        state = [hand_str,pos,bankroll,opp_bankroll,opp_last_bet,pot_size, round_num]
+        state = [hand_str, pos, bankroll,opp_bankroll,opp_last_bet,pot_size, round_num]
         self.learner.last_state = state
         if self.learner.round > 0:
             self.learner.train_model(state)
         #now compute action
         action = self.learner.compute_action(state)
-
+        if action == 0 and min_bet == 0:
+            action = 1
+            self.learner.last_action = action
         bet_sizes = [-10, min_bet, 0.5 * sum(game.pot), sum(game.pot), 1.5 * sum(game.pot), self.chips]
         bet = int(round(bet_sizes[action]))
         #reward will be 0 for the last round
@@ -255,3 +273,5 @@ class GreedyBot(Bot):
 
     def __init__(self,name):
         Bot.__init__(self, name)
+if __name__ == "__main__":
+    RLBot('Mingu').preflop_graph()

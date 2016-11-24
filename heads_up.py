@@ -253,7 +253,6 @@ class Game:
             print self.player_list[i].name + ': ' + str(self.player_list[i].chips)
         print "\n"
         for j,i in enumerate(self.player_list):
-            if not isinstance(i, Human):
                 i.end_round(self, winnings[j])
 
     def play(self):
@@ -280,6 +279,9 @@ class Game:
                     if isinstance(i, Bot):
                         i.end()
                 break
+            for j,i in enumerate(test.player_list):
+                if isinstance(i, rl_bot.RLBot):
+                    i.learner.round = 0
             print "Next Round"
             self.player_list = np.roll(self.player_list, 1)
             self.last_bets = np.roll(self.last_bets,1)
@@ -342,12 +344,32 @@ class Game:
 
 
 if __name__ == "__main__":
-    test = Game([rl_bot.GreedyBot("Alex"), rl_bot.RLBot("Mingu")], 40, [5, 10])
-    for n in range(200):
-        with suppress_stdout():
+    #test = Game([rl_bot.GreedyBot("Alex"), rl_bot.RLBot("Mingu")], 40, [5, 10])
+    score = 0
+    for x in range(1):
+        test = Game([rl_bot.GreedyBot("Alex"), rl_bot.RLBot("Mingu")], 40, [5, 10])
+        for n in range(10):
+            #with suppress_stdout():
             test.play()
             for j,i in enumerate(test.player_list):
                 if isinstance(i, rl_bot.RLBot):
                     i.learner.round = 0
                     i.end()
-        print n
+            print n
+        # test = Game([rl_bot.RLBot("Alex"), rl_bot.RLBot("Mingu")], 40, [5, 10])
+        # for n in range(50):
+        #     with suppress_stdout():
+        #         test.play()
+        #         for j,i in enumerate(test.player_list):
+        #             if isinstance(i, rl_bot.RLBot):
+        #                 i.learner.round = 0
+        #                 i.end()
+        #     print n
+        # print ""
+        # print x
+            for j,i in enumerate(test.player_list):
+                if isinstance(i, rl_bot.RLBot):
+                    if i.chips > 0:
+                        score += 1
+            if n % 2 == 0:
+                print float(score) / (n+1)
