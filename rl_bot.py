@@ -19,7 +19,7 @@ state_size = 7
 
 class Learner(object):
 
-    def __init__(self,exp_replay="experiences.csv",model=None,epsilon=0.0,gamma=0.5):
+    def __init__(self,exp_replay="experiences.csv",model=None,epsilon=1.0,gamma=0.5):
 
         #track "round" (so we can write on every round that has a preceding round)
         self.round = 0
@@ -30,9 +30,7 @@ class Learner(object):
         #available actions (for now just a list of indexes)
         self.actions = range(5)
         self.gamma = gamma
-        print gamma
         self.epsilon = epsilon
-        print epsilon
 
         #load pre-existing model
         if model:
@@ -75,6 +73,7 @@ class Learner(object):
         self.model.save(self.model_name)
 
     def compute_action(self,state,reward=0):
+        print "ROUND: " + str(self.round)
         self.last_state = state
 
         #decide whether or not to be greedy
@@ -96,64 +95,27 @@ class Learner(object):
             return action
 
     def train_model(self, state=None, reward=0):
-        if len(self.replay) < self.buffer:
-            self.replay.append((self.last_state, self.last_action, reward, state))
-        else: #if buffer full, overwrite old values
-            if self.index < (self.buffer-1):
-                self.index += 1
-            else:
-                self.index = 0
-            self.replay[self.index] = (self.last_state, self.last_action, reward, state)
-            #randomly sample our experience replay memory
-            minibatch = random.sample(self.replay, self.batchSize)
-            X_train = []
-            y_train = []
-            for event in minibatch:
-                #Get max_Q(S',a)
-                old_state, action, reward, new_state = event
-                old_qval = self.model.predict(np.array(old_state).reshape(1,state_size), batch_size=1)
-                y = np.array(old_qval)
-                if reward == 0 and new_state != None: #non-terminal state
-                    new_qval = self.model.predict(np.array(new_state).reshape(1,state_size), batch_size=1)
-                    max_Qval = np.max(new_qval)
-                    update = (reward + (self.gamma * max_Qval))
-                else: #terminal state
-                    update = reward
-                y[0][action] = update
-                X_train.append(old_state)
-                y_train.append(y[0])
-
-            X_train = np.array(X_train)
-            y_train = np.array(y_train)
-            self.model.fit(X_train, y_train, batch_size=self.batchSize, nb_epoch=1, verbose=1)
-            self.model.save('model.h5')
-
         def signal_handler(signum, frame):
             if signum is signal.SIGINT:
                 print >> sys.stderr, "interrupted during training"
                 self.model.save('model.h5')
                 sys.exit(0)
         signal.signal(signal.SIGINT,signal_handler)
-        if self.last_state != None:
+        experience = (self.last_state, self.last_action, reward, state)
+        if experience[0] != None and experience[1] != None:
             if len(self.replay) < self.buffer:
-                self.replay.append((self.last_state, self.last_action, reward, state))
-            else: #if buffer full, overwrite old values
-                if self.index < (self.buffer-1):
-                    self.index += 1
-                else:
-                    self.index = 0
-                self.replay[self.index] = (self.last_state, self.last_action, reward, state)
-                #randomly sample our experience replay memory
-                minibatch = random.sample(self.replay, self.batchSize)
+                self.replay.append(experience)
+            else:
                 X_train = []
                 y_train = []
+                minibatch = random.sample(self.replay, self.batchSize)
                 for event in minibatch:
                     #Get max_Q(S',a)
                     old_state, action, reward, new_state = event
-                    old_qval = self.model.predict(np.array(old_state).reshape(1,7), batch_size=1)
+                    old_qval = self.model.predict(np.array(old_state).reshape(1,state_size), batch_size=1)
                     y = np.array(old_qval)
                     if reward == 0 and new_state != None: #non-terminal state
-                        new_qval = self.model.predict(np.array(new_state).reshape(1,7), batch_size=1)
+                        new_qval = self.model.predict(np.array(new_state).reshape(1,state_size), batch_size=1)
                         max_Qval = np.max(new_qval)
                         update = (reward + (self.gamma * max_Qval))
                     else: #terminal state
@@ -164,8 +126,9 @@ class Learner(object):
 
                 X_train = np.array(X_train)
                 y_train = np.array(y_train)
-                self.model.fit(X_train, y_train, batch_size=self.batchSize, nb_epoch=1, verbose=1)
+                self.model.fit(X_train, y_train, batch_size=self.batchSize, nb_epoch=2, verbose=1, shuffle=True)
                 self.model.save('model.h5')
+                self.replay = []
         signal.signal(signal.SIGINT,signal.SIG_DFL)
     # #subroutine to record experiences
     # def experience(self, new_state=['NULL'], reward=0):

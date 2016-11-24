@@ -442,7 +442,7 @@ if __name__ == "__main__":
                         i.end()
 
             if results.verbose:
-                test.play()
+                output = play_games()
             else:
                 with suppress_stdout():
                     output = play_games()
