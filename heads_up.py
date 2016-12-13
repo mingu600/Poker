@@ -23,6 +23,7 @@ def suppress_stdout():
             sys.stdout = old_stdout
 
 
+# This is the player class. Humans and bots are both Players with chips and cards.
 class Player:
     def __init__(self, name):
         self.hand = []
@@ -32,16 +33,20 @@ class Player:
         self.folded = False
         self.bot = False
 
+    # Reset your betting amount
     def resetBets(self):
         self.current_bet = 0
 
+    # For printing turn order
     def printName(self):
         print("It's " + self.name + "\'s turn.")
 
+    # Simulates 500 games with the given information of the current state and derives hand strength
+    # Returns the likelihood that the player will win the round if the entire round is played out
     def calc_hand_strength(self, game):
         score = [0, 0]
         table = game.table[:]
-        for i in range(0, 100):
+        for i in range(0, 500):
             deck = Deck()
             new = 0
             player1_hand = self.hand
@@ -69,7 +74,7 @@ class Player:
         strength = score[0] / score[1]
         return strength
 
-
+# This is the Human class, a subclass of Player
 class Human(Player):
     def __init__(self, name):
         self.hand = []
@@ -79,23 +84,29 @@ class Human(Player):
         self.folded = False
         self.bot = False
 
+    # How people can bet, mainly for printing purposes
+    # If your bet amount is -10, then this is synonymous with folding
     def bet(self, min_bet, current_bet, times, game=None):
         bet = -5
         min_bet -= current_bet
+        # You are reprompted if you try to bet less than you should
         while bet < min_bet and bet != -10:
             print("Enter your bet, minimum to call is " + str(min_bet) + ", to fold enter -10")
             try:
                 bet = int(input())
             except ValueError:
                 print("Unable to read input. Please try again!")
+        # If you bet more than you have, you bet all your chips
         if bet > self.chips:
             print("All In!")
             bet = self.chips
+        # If you bet the minimum, this is equivalent to check/call
         if bet == min_bet:
             if min_bet == 0:
                 print(self.name + " checks.")
             else:
                 print(self.name + " calls.")
+        # If you bet -10, you folded
         elif bet < 0:
             print(self.name + " folds.")
             bet = 0
@@ -106,7 +117,7 @@ class Human(Player):
 
 
 
-
+# Bot is also a subclass of player
 class Bot(Player):
     def __init__(self, name, strategy=None):
         self.hand = []
@@ -124,7 +135,8 @@ class Bot(Player):
         pass
 
     def bet(self, min_bet, current_bet,times,game=None):
-        # For now, bot only checks or calls
+        # The default betting behavior is to always call. This is overridden with our RL bot.
+        # See comments in bet() for Human
         bet = -5
         min_bet -= current_bet
         while bet < min_bet and bet < self.chips:
@@ -147,12 +159,11 @@ class Bot(Player):
             print(self.name + " raises " + str(bet - min_bet) + "to " + str(bet + current_bet))
         return bet
 
-
+# Game Class- the game holds all the information about the game, and play() starts a poker game
 class Game:
     def __init__(self, player_list, chips, blinds, num_hands=100):
         self.player_list = player_list
         self.player_num = 2
-        #self.hands = [[] for i in range(len(player_list))]
         self.num_hands = num_hands
         self.deck = Deck()
         self.evaluator = Evaluator()
@@ -165,33 +176,39 @@ class Game:
         self.bet_round = 0
         self.strengths =[[], []]
         self.last_bets = [None,None]
-
         self.times = dict([('main',{'total':0,'count':0}),('strength',{'total':0,'count':0})]+[(player.name,{'total':0,'count':0}) for player in player_list])
 
+    # Function for dealing cards to every player
     def dealCards(self):
         for i in range(2):
             self.player_list[i].hand = self.deck.draw(2)
             print self.player_list[i].name
             Card.print_pretty_cards(self.player_list[i].hand)
 
+    # Reset player chip amounts and bets
     def resetChips(self):
         for i in range(2):
             self.player_list[i].chips = self.chips
             self.player_list[i].resetBets
 
+    # Shuffle deck
     def shuffleCards(self):
         self.deck = Deck()
 
+    # Clear chips off table
     def clearTableChips(self):
         self.table_chips = 0
 
+    # Reset the pot to 0
     def resetPot(self):
         self.pot = 0
 
+    # Reset every player's flag that indicates folding
     def resetFolds(self):
         for player in self.player_list:
             player.folded = False
 
+    # Adds one card to the table and prints cards each time the round ends
     def rounds(self):
         round_num = self.bet_round
         if round_num == 1:
@@ -260,9 +277,8 @@ class Game:
         for j,i in enumerate(self.player_list):
                 i.end_round(self, winnings[j])
 
+    # Starts one game of poker
     def play(self):
-
-
         t1 = time.time()
 
         # Gameplay is initilalized
@@ -297,16 +313,14 @@ class Game:
             # Round starts
             # People are dealt cards at the start of the round
             self.dealCards()
+
             # Small and Big blinds are put on the table
-            #self.player_list[(dealer + 1) % self.player_num].current_bet = self.blinds[0]
             print(self.player_list[(dealer + 1) % 2].name + " pays small blind of " + str(self.blinds[0]))
             self.player_list[(dealer + 1) % 2].chips -= self.blinds[0]
             self.pot[(dealer + 1) % 2] = self.blinds[0]
-            #self.player_list[(dealer + 2) % self.player_num].current_bet = self.blinds[1]
             print(self.player_list[dealer % 2].name + " pays big blind of " + str(self.blinds[1]))
             self.pot[dealer % 2] = min([self.player_list[dealer % 2].chips,self.blinds[1]])
             self.player_list[dealer % 2].chips -= min([self.player_list[dealer % 2].chips,self.blinds[1]])
-    #self.table_chips += self.blinds[1] + self.blinds[0]
             min_bet = self.blinds[1]
             self.bet_round = 0
             # Rounds of betting
@@ -364,7 +378,7 @@ class Game:
 
 if __name__ == "__main__":
     #parse command line
-
+    np.set_printoptions(suppress=True)
     #bots of players
     p1 = rl_bot.RLBot
     p1_args = []
@@ -397,7 +411,7 @@ if __name__ == "__main__":
     results = parser.parse_args(sys.argv[1:])
     if results.performance:
         score = 0
-        test = Game([rl_bot.GreedyBot("Alex"), rl_bot.RLBot("Mingu")], 40, [5, 10])
+        test = Game([rl_bot.GreedyBot("Robert"), rl_bot.RLBot("Mingu")], 40, [5, 10])
         for n in range(200):
             with suppress_stdout():
                 test.play()
@@ -407,15 +421,17 @@ if __name__ == "__main__":
                             score += 1
                         i.learner.round = 0
                         i.end()
-            if n % 25 == 0:
+            if n % 50 == 0:
                 print n
+                #rl_bot.RLBot("Mingu").last_bet_graph(n)
+                #print ''
         print 'Win Percentage: ' + str(float(score) / 2) + '%'
         sys.exit(1)
 
     if results.custom:
         score = 0
         for x in range(10):
-            test = Game([rl_bot.GreedyBot("Alex"), rl_bot.RLBot("Mingu")], 40, [5, 10])
+            test = Game([rl_bot.GreedyBot("Robert"), rl_bot.RLBot("Mingu")], 40, [5, 10])
             for n in range(200):
                 #with suppress_stdout():
                 test.play()
@@ -424,7 +440,7 @@ if __name__ == "__main__":
                         i.learner.round = 0
                         i.end()
                 print n
-            test = Game([rl_bot.RLBot("Alex"), rl_bot.RLBot("Mingu")], 40, [5, 10])
+            test = Game([rl_bot.RLBot("Robert"), rl_bot.RLBot("Mingu")], 40, [5, 10])
             for n in range(50):
                 with suppress_stdout():
                     test.play()
@@ -464,7 +480,7 @@ if __name__ == "__main__":
             assign_player("p2",results.p2[0])
             p2_args = map(float, results.p2[1:])
 
-        test = Game([p1("Alex", *p1_args), p2("Mingu", *p2_args)], chips, [lb, 2*lb])
+        test = Game([p1("Robert", *p1_args), p2("Mingu", *p2_args)], chips, [lb, 2*lb])
 
         t = time.time()
         for n in range(length):
