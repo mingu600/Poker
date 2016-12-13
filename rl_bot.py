@@ -44,7 +44,10 @@ class Learner(object):
         self.index = 0
         self.batchSize = 40
 
-    # Builds neural network
+        # Builds neural network
+        #create writer for experiences
+        #must close on end of session
+
     def build_model(self):
         print "Building new model..."
         model = Sequential()
@@ -84,13 +87,15 @@ class Learner(object):
             self.last_action = action
             return action
 
-    def train_model(self, state=None, reward=0):
+    def train_model(self, state=[None]*state_size, reward=0):
+
         def signal_handler(signum, frame):
             if signum is signal.SIGINT:
                 print >> sys.stderr, "interrupted during training"
                 self.model.save('model.h5')
                 sys.exit(0)
         signal.signal(signal.SIGINT,signal_handler)
+
         experience = (self.last_state, self.last_action, reward, state)
         if experience[0] != None and experience[1] != None:
             # If the buffer is not full, add new experience
@@ -103,9 +108,10 @@ class Learner(object):
                 for event in self.replay:
                     #Get max_Q(S',a)
                     old_state, action, reward, new_state = event
+                    self.exp_writer.writerow(old_state + [action] + [reward] + new_state)
                     old_qval = self.model.predict(np.array(old_state).reshape(1,state_size), batch_size=1)
                     y = np.array(old_qval)
-                    if reward == 0 and new_state != None: #non-terminal state
+                    if reward == 0 and new_state[0] != None: #non-terminal state
                         new_qval = self.model.predict(np.array(new_state).reshape(1,state_size), batch_size=1)
                         max_Qval = np.max(new_qval)
                         update = (reward + (self.gamma * max_Qval))
@@ -123,7 +129,6 @@ class Learner(object):
                 self.model.save('model.h5')
                 self.replay = []
         signal.signal(signal.SIGINT,signal.SIG_DFL)
-
 
 class RLBot(Bot):
 
